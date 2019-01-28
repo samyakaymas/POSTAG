@@ -31,7 +31,6 @@ def read_train_file():
 	assert len(words) == len(tags)
 	f.close()
 	return (words,tags)
-
 #NEEDS TO BE FILLED!
 def train_func(train_list_words, train_list_tags):
 
@@ -99,12 +98,12 @@ def train_func(train_list_words, train_list_tags):
 	for i in range(len(data[0])):
 		for j in range(len(data[0][i])):
 			count[data[1][i][j]] += 1
-			if data[0][i][j].lower() not in list(dict2_word_tag.keys()):
-				dict2_word_tag[data[0][i][j].lower()] = {}
-			if data[1][i][j] not in list(dict2_word_tag[data[0][i][j].lower()].keys()):
-				dict2_word_tag[data[0][i][j].lower()][data[1][i][j]] = 1
+			if data[0][i][j] not in list(dict2_word_tag.keys()):
+				dict2_word_tag[data[0][i][j]] = {}
+			if data[1][i][j] not in list(dict2_word_tag[data[0][i][j]].keys()):
+				dict2_word_tag[data[0][i][j]][data[1][i][j]] = 1
 			else:
-				dict2_word_tag[data[0][i][j].lower()][data[1][i][j]] += 1
+				dict2_word_tag[data[0][i][j]][data[1][i][j]] += 1
 	
 	for words in list(dict2_word_tag.keys()):
 		for tags in list(dict2_word_tag[words].keys()):
@@ -158,7 +157,7 @@ def assign_POS_tags(test_words, dict2_tag_follow_tag, dict2_word_tag, total_tags
 
 
 	output_test_tags = []    #list of list of predicted tags, corresponding to the list of list of words in Test set (test_words input to this function)
-
+	
 
 	#      *** WRITE YOUR CODE HERE ***
 	for line in test_words:
@@ -166,14 +165,16 @@ def assign_POS_tags(test_words, dict2_tag_follow_tag, dict2_word_tag, total_tags
 		best_tag = [ dict() for j in range(len(line)+1)]
 		dp[0]['SOS'] = 0.0
 		for i in range(len(line)):
-			if line[i].lower() not in list(dict2_word_tag.keys()):
-				dict2_word_tag[line[i].lower()] = {}
-				dict2_word_tag[line[i].lower()]['N'] = 1
+			if line[i] not in list(dict2_word_tag.keys()):
+				dict2_word_tag[line[i]] = {}
+				#Taking unknown words to be Noun VErb Adjective Cardinal with equal probabilities(It increases the accuracy against only taking it as Noun)
+				for temp in 'N' 'V' 'J' 'C':
+					dict2_word_tag[line[i]][temp] = 0.25
 			for prev in list(dp[i].keys()):
 				for next_tag in total_tags:
 					score = -1.0
-					if next_tag in list(dict2_word_tag[line[i].lower()].keys()) and dict2_tag_follow_tag[prev][next_tag]!=0 :
-						score = dp[i][prev] - math.log(dict2_tag_follow_tag[prev][next_tag]) - math.log(dict2_word_tag[line[i].lower()][next_tag])
+					if next_tag in list(dict2_word_tag[line[i]].keys()) and dict2_tag_follow_tag[prev][next_tag]!=0 :
+						score = 1.5*dp[i][prev] - math.log(dict2_tag_follow_tag[prev][next_tag]) - math.log(dict2_word_tag[line[i]][next_tag])
 						if next_tag not in list(dp[i+1].keys()) or dp[i+1][next_tag] > score:
 							dp[i+1][next_tag] = score
 							best_tag[i+1][next_tag] = prev
@@ -257,6 +258,8 @@ def public_test(predicted_tags):
 	for i in range(len(flattened_pred_tags)):
 		if flattened_pred_tags[i]==flattened_actual_tags[i]:
 			correct+=1.0
+		#else:
+			#print(flattened_pred_tags[i],flattened_actual_tags[i])
 	print('Accuracy on the Public set = '+str(correct/len(flattened_pred_tags)))
 
 
@@ -303,4 +306,6 @@ def evaluate():
 	print('OUTPUT file has been created')
 
 if __name__ == "__main__":
+	start = time.time()
 	evaluate()
+	print('Time Taken :',time.time() - start ,'Seconds')
